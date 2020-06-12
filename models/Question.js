@@ -8,7 +8,8 @@ export const Question = mongoose.model('Question', {
       type: String,
     },
     question: {
-      type: String
+      type: String,
+      minlength: 30
     },
     likes: {
       type: Number,
@@ -19,7 +20,7 @@ export const Question = mongoose.model('Question', {
       ref: 'User'
     },
     answer: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: [mongoose.Schema.Types.ObjectId],
       ref: 'Answer'
     },
     createdAt: {

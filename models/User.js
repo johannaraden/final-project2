@@ -8,7 +8,8 @@ export const User = mongoose.model('User', {
   },
   email: {
     type: String,
-    unique: true
+    unique: true,
+    required: true
   },
   password: {
     type: String,

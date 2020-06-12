@@ -97,23 +97,23 @@ app.post('/sessions', async (req, res) => {
 // Questions & answers
 
 // For this endpoint - creating regex to make it possible to search for a question including words like "playing" or "wi-fi"
-
+app.get('/questions', authenticateUser)
 app.get('/questions', async (req, res) => {
   const { query } = req.query
   const queryRegex = new RegExp(query, 'i')
-  // How to 
-  const questions = await Question.find({question: queryRegex}).populate('User')
+  // Checking for matches in both question and the title
+  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]}).populate('User')
   // Also possible to get hits from words in the title , {title: queryRegex}
   console.log(`Found ${questions.length} question(s)`)
   res.json(questions)
 })
 
-// add question
-
+// Add question
+app.post('/questions', authenticateUser)
 app.post('/questions', async (req, res) => {
   try {
-    const { title, question, userId } = req.body
-    const newQuestion = new Question({ title, question, userId })
+    const { title, question } = req.body
+    const newQuestion = new Question({ title, question, userId:req.user._id })
     const saved = await newQuestion.save()
     res.status(201).json({ title: saved.title, question: saved.question, questionId: saved._id, userId: saved.userId })
   } catch (err) { 
@@ -121,11 +121,23 @@ app.post('/questions', async (req, res) => {
   }
 })
 
-//Looking for a specific question by id.
+// Like question
+app.post('/:questionId/like', async (req, res) => {
+  const { questionId } = req.params
+  console.log(`POST //${questionId}/like`)
+    try {
+      await Question.updateOne({ _id: questionId }, { $inc: { likes: 1 } })
+      res.status(201).json()
+    } catch {
+      res.status(404).json({message: 'Could not update likes to an undefined question.'})
+    }
+})
 
-app.get('/questions/:userId', async (req, res) => {
+//For all questions written by a specific user.
+app.get('/profile/questions', authenticateUser)
+app.get('/profile/questions', async (req, res) => {
   try {
-    const question = await Question.findById(req.params.userId) 
+    const question = await Question.find({userId: req.user._id}) 
     if (question) {
       res.json(question)
     } else {
@@ -136,41 +148,63 @@ app.get('/questions/:userId', async (req, res) => {
   }
 })
 
+// Endpoint for specific question
+app.get('questions/:questionId', authenticateUser)
+app.get('questions/questionId', async(req, res) => {
+  const { questionId } = req.params
+  const oneQuestion = await Question.findById({ questionId })
+  res.status(201).json({ oneQuestion })
+})
+
 // Top three page shows the three questions with the most likes 
+app.get('/popular', authenticateUser)
 app.get('/popular', async(req, res) => {
   const popularQuestions = await Question.find({}).sort({likes: -1}).limit(3)
   res.json(popularQuestions)
   })
 
-  app.get('/noanswer', async(req, res) => {
-    const unansweredQuestions = await Question.find({likes: 0})
-    res.json(unansweredQuestions)
-    console.log('hej')
-  })
+app.get('/noanswer', authenticateUser)
+app.get('/noanswer', async(req, res) => {
+  const unansweredQuestions = await Question.find({answer: 0})
+  res.json(unansweredQuestions)
+  console.log('hej')
+})
 
 
 
-  // answers endpoint 
-
-  app.get('/answers', async (req, res) => {
-    const answers = await Answer.find()
-    // Also possible to get hits from words in the title , {title: queryRegex}
-    console.log(`Found ${answers.length} answer(s)`)
-    res.json(answers)
-  })
+// Answers endpoint 
+app.get('/answers', authenticateUser)
+app.get('/answers', async (req, res) => {
+  const answers = await Answer.find()
+  console.log(`Found ${answers.length} answer(s)`)
+  res.json(answers)
+})
   
-  // add question
-  
-  app.post('/answers', async (req, res) => {
+// Add answer
+app.post('/answers', authenticateUser)
+app.post('/answers', async (req, res) => {
+  try {
+    const { text } = req.body
+    const newAnswer = new Answer({ text, userId:req.user._id })
+    const saved = await newAnswer.save()
+    res.status(201).json({ text: saved.text, userId: saved.userId })
+  } catch (err) { 
+    res.status(400).json({ message: 'Could not create answer', errors: err.errors })
+  }
+})
+
+// Like answer
+
+app.post('/:answerId/like', async (req, res) => {
+  const { answerId } = req.params
+  console.log(`POST //${answerId}/like`)
     try {
-      const { text } = req.body
-      const newAnswer = new Answer({ text })
-      const saved = await newAnswer.save()
-      res.status(201).json({ text: saved.text })
-    } catch (err) { 
-      res.status(400).json({ message: 'Could not create answer', errors: err.errors })
+      await Answer.updateOne({ _id: answerId }, { $inc: { likes: 1 } })
+      res.status(201).json()
+    } catch {
+      res.status(404).json({message: 'Could not update likes to an undefined answer.'})
     }
-  })
+})
 
 
 // Start the server
