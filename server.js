@@ -85,7 +85,7 @@ app.post('/sessions', async (req, res) => {
     const { name, password } = req.body
     const user = await User.findOne({ name })
     if (user && bcrypt.compareSync(password, user.password)) {
-      res.status(201).json({ name: user.name, userId: user._id, accessToken: user.accessToken, message: 'You are logged in' })
+      res.status(201).json({ name: user.name, questions: user.questions, userId: user._id, accessToken: user.accessToken, message: 'You are logged in' })
     } else {
       res.status(404).json({ notFound: true })
     }
@@ -94,28 +94,44 @@ app.post('/sessions', async (req, res) => {
   }
 })
 
+app.get('/user/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id) 
+    if (user) {
+      res.json(user)
+    } else {
+      res.status(404).json({error: ERR_NO_QUESTIONS})
+  } 
+  }catch (err) {
+    res.status(400).json({error: ERR_NO_QUESTIONS})
+  }
+})
+
 // Questions & answers
 
 // For this endpoint - creating regex to make it possible to search for a question including words like "playing" or "wi-fi"
-app.get('/questions', authenticateUser)
+// app.get('/questions', authenticateUser)
 app.get('/questions', async (req, res) => {
   const { query } = req.query
   const queryRegex = new RegExp(query, 'i')
   // Checking for matches in both question and the title
-  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]}).populate('User')
+  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]})
   // Also possible to get hits from words in the title , {title: queryRegex}
   console.log(`Found ${questions.length} question(s)`)
   res.json(questions)
 })
 
 // Add question
-app.post('/questions', authenticateUser)
+// app.post('/questions', authenticateUser)
 app.post('/questions', async (req, res) => {
   try {
-    const { title, question } = req.body
-    const newQuestion = new Question({ title, question, userId:req.user._id })
+    const { title, question, userId } = req.body
+    const newQuestion = new Question({ title, question, userId })
+    // , userId:req.user._id
     const saved = await newQuestion.save()
     res.status(201).json({ title: saved.title, question: saved.question, questionId: saved._id, userId: saved.userId })
+    // userId: saved.userId
+    console.log(newQuestion)
   } catch (err) { 
     res.status(400).json({ message: 'Could not create question', errors: err.errors })
   }
@@ -134,7 +150,7 @@ app.post('/:questionId/like', async (req, res) => {
 })
 
 //For all questions written by a specific user.
-app.get('/profile/questions', authenticateUser)
+// app.get('/profile/questions', authenticateUser)
 app.get('/profile/questions', async (req, res) => {
   try {
     const question = await Question.find({userId: req.user._id}) 
@@ -149,21 +165,28 @@ app.get('/profile/questions', async (req, res) => {
 })
 
 // Endpoint for specific question
-app.get('questions/:questionId', authenticateUser)
-app.get('questions/questionId', async(req, res) => {
-  const { questionId } = req.params
-  const oneQuestion = await Question.findById({ questionId })
-  res.status(201).json({ oneQuestion })
+// app.get('questions/:questionId', authenticateUser)
+app.get('/question/:id', async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id) 
+    if (question) {
+      res.json(question)
+    } else {
+      res.status(404).json({error: ERR_NO_QUESTIONS})
+  } 
+  }catch (err) {
+    res.status(400).json({error: ERR_NO_QUESTIONS})
+  }
 })
 
 // Top three page shows the three questions with the most likes 
-app.get('/popular', authenticateUser)
+// app.get('/popular', authenticateUser)
 app.get('/popular', async(req, res) => {
   const popularQuestions = await Question.find({}).sort({likes: -1}).limit(3)
   res.json(popularQuestions)
   })
 
-app.get('/noanswer', authenticateUser)
+// app.get('/noanswer', authenticateUser)
 app.get('/noanswer', async(req, res) => {
   const unansweredQuestions = await Question.find({answer: 0})
   res.json(unansweredQuestions)
@@ -173,7 +196,7 @@ app.get('/noanswer', async(req, res) => {
 
 
 // Answers endpoint 
-app.get('/answers', authenticateUser)
+// app.get('/answers', authenticateUser)
 app.get('/answers', async (req, res) => {
   const answers = await Answer.find()
   console.log(`Found ${answers.length} answer(s)`)
@@ -181,7 +204,7 @@ app.get('/answers', async (req, res) => {
 })
   
 // Add answer
-app.post('/answers', authenticateUser)
+// app.post('/answers', authenticateUser)
 app.post('/answers', async (req, res) => {
   try {
     const { text } = req.body

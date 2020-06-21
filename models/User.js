@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose, { Schema } from 'mongoose'
 import crypto from 'crypto'
 
 export const User = mongoose.model('User', {
@@ -18,5 +18,11 @@ export const User = mongoose.model('User', {
   accessToken: {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
+  },
+  questions: [
+    {
+      type: Schema.Types.ObjectId,
+    ref: 'Question'
   }
+  ]
 })

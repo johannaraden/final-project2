@@ -9,7 +9,7 @@ export const Question = mongoose.model('Question', {
     },
     question: {
       type: String,
-      minlength: 30
+      // minlength: 30
     },
     likes: {
       type: Number,
@@ -17,7 +17,8 @@ export const Question = mongoose.model('Question', {
     },
     userId: {
       type:mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      required: true
     },
     answer: {
       type: [mongoose.Schema.Types.ObjectId],
