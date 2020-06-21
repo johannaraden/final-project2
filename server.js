@@ -115,7 +115,7 @@ app.get('/questions', async (req, res) => {
   const { query } = req.query
   const queryRegex = new RegExp(query, 'i')
   // Checking for matches in both question and the title
-  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]})
+  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]}).sort({createdAt: 'desc'})
   // Also possible to get hits from words in the title , {title: queryRegex}
   console.log(`Found ${questions.length} question(s)`)
   res.json(questions)
@@ -127,10 +127,8 @@ app.post('/questions', async (req, res) => {
   try {
     const { title, question, userId } = req.body
     const newQuestion = new Question({ title, question, userId })
-    // , userId:req.user._id
     const saved = await newQuestion.save()
     res.status(201).json({ title: saved.title, question: saved.question, questionId: saved._id, userId: saved.userId })
-    // userId: saved.userId
     console.log(newQuestion)
   } catch (err) { 
     res.status(400).json({ message: 'Could not create question', errors: err.errors })
@@ -202,15 +200,28 @@ app.get('/answers', async (req, res) => {
   console.log(`Found ${answers.length} answer(s)`)
   res.json(answers)
 })
+
+
+// Get all answers for a specific question
+
+app.get('/question/:id/answers', async (req, res) => {
+  const { query } = req.query
+  const queryRegex = new RegExp(query, 'i')
+  // Checking for matches in both question and the title
+  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]}).sort({createdAt: 'desc'})
+  // Also possible to get hits from words in the title , {title: queryRegex}
+  console.log(`Found ${questions.length} question(s)`)
+  res.json(questions)
+})
   
 // Add answer
-// app.post('/answers', authenticateUser)
-app.post('/answers', async (req, res) => {
+// app.post('/answer', authenticateUser)
+app.post('/question/:id/answers', async (req, res) => {
   try {
-    const { text } = req.body
-    const newAnswer = new Answer({ text, userId:req.user._id })
+    const { text, userId, questionId } = req.body
+    const newAnswer = new Answer({ text, userId:req.user._id, questionId:req.question._id  })
     const saved = await newAnswer.save()
-    res.status(201).json({ text: saved.text, userId: saved.userId })
+    res.status(201).json({ text: saved.text, userId: saved.userId, questionId: saved.questionId })
   } catch (err) { 
     res.status(400).json({ message: 'Could not create answer', errors: err.errors })
   }
