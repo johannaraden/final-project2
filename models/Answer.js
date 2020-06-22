@@ -7,13 +7,18 @@ export const Answer = mongoose.model('Answer', {
   text: {
     type: String,
   },
-  question: {
+  questionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Question'
   },
   likes: {
     type: Number,
     default: 0
+  },
+  userId: {
+    type:mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
   createdAt: {
     type: Date,

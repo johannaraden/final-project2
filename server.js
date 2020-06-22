@@ -112,13 +112,21 @@ app.get('/user/:id', async (req, res) => {
 // For this endpoint - creating regex to make it possible to search for a question including words like "playing" or "wi-fi"
 // app.get('/questions', authenticateUser)
 app.get('/questions', async (req, res) => {
-  const { query } = req.query
-  const queryRegex = new RegExp(query, 'i')
-  // Checking for matches in both question and the title
-  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]}).sort({createdAt: 'desc'})
-  // Also possible to get hits from words in the title , {title: queryRegex}
-  console.log(`Found ${questions.length} question(s)`)
-  res.json(questions)
+  try {
+    const { query } = req.query
+    const queryRegex = new RegExp(query, 'i')
+    // Checking for matches in both question and the title
+    const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]}).sort({createdAt: 'desc'})
+    // Also possible to get hits from words in the title , {title: queryRegex}
+    if(questions.length === 0) {
+      res.status(200).json({ message: ERR_NO_QUESTIONS })
+      console.log(`Found ${questions.length} question(s)`)
+    } else {
+        res.json(questions)
+    }
+  } catch (err) {
+    res.status(400).json({ message: ERR_NO_QUESTIONS, errors: err.errors })
+  }
 })
 
 // Add question
@@ -149,16 +157,38 @@ app.post('/:questionId/like', async (req, res) => {
 
 //For all questions written by a specific user.
 // app.get('/profile/questions', authenticateUser)
-app.get('/profile/questions', async (req, res) => {
+// app.get('/profile/:userId/questions', async (req, res) => {
+//   try {
+//     const question = await Question.find({userId: req.params.user._id})
+//     console.log(question) 
+//     if (question) {
+//       res.json(question)
+//     } else {
+//       res.status(404).json({error: ERR_NO_QUESTIONS})
+//   } 
+//   }catch (err) {
+//     res.status(400).json({error: ERR_NO_QUESTIONS})
+//   }
+// })
+app.get('/profile/:userId/questions', authenticateUser)
+app.get('/profile/:userId/questions', async (req, res) => {
+  const { userId } = req.params
   try {
-    const question = await Question.find({userId: req.user._id}) 
-    if (question) {
-      res.json(question)
-    } else {
-      res.status(404).json({error: ERR_NO_QUESTIONS})
-  } 
-  }catch (err) {
-    res.status(400).json({error: ERR_NO_QUESTIONS})
+    const userQuestions = await Question.find({ userId: userId})
+    res.json(userQuestions)
+  } catch (err) {
+    res.status(400).json({ message: 'Does not work at all!'})
+  }
+})
+
+// app.get('/latest/:userId/questions', authenticateUser)
+app.get('/latest/:userId/questions', async (req, res) => {
+  const { userId } = req.params
+  try {
+    const userQuestions = await Question.find({ userId: userId}).sort({createdAt: 'desc'}).limit(3)
+    res.json(userQuestions)
+  } catch (err) {
+    res.status(400).json({ message: 'Does not work at all!'})
   }
 })
 
@@ -166,7 +196,7 @@ app.get('/profile/questions', async (req, res) => {
 // app.get('questions/:questionId', authenticateUser)
 app.get('/question/:id', async (req, res) => {
   try {
-    const question = await Question.findById(req.params.id) 
+    const question = await Question.findById(req.params.id).populate('answer')
     if (question) {
       res.json(question)
     } else {
@@ -186,8 +216,9 @@ app.get('/popular', async(req, res) => {
 
 // app.get('/noanswer', authenticateUser)
 app.get('/noanswer', async(req, res) => {
-  const unansweredQuestions = await Question.find({answer: 0})
+  const unansweredQuestions = await Question.find({answer: []})
   res.json(unansweredQuestions)
+  console.log(`Found ${unansweredQuestions.length} question(s)`)
   console.log('hej')
 })
 
@@ -204,22 +235,28 @@ app.get('/answers', async (req, res) => {
 
 // Get all answers for a specific question
 
-app.get('/question/:id/answers', async (req, res) => {
-  const { query } = req.query
-  const queryRegex = new RegExp(query, 'i')
-  // Checking for matches in both question and the title
-  const questions = await Question.find({$or:[ {question: queryRegex}, {title: queryRegex }]}).sort({createdAt: 'desc'})
-  // Also possible to get hits from words in the title , {title: queryRegex}
-  console.log(`Found ${questions.length} question(s)`)
-  res.json(questions)
+app.get('/question/:questionId/answers', async (req, res) => {
+  const { questionId } = req.params
+  try {
+    const oneQuestionAnswers = await Question.findById(questionId).populate({
+      path: 'answer',
+      select: 'text'
+    })
+    res.json(oneQuestionAnswers)
+  } catch (err) {
+    res.status(400).json({ message: 'Does not work!'})
+  }
+//   // Also possible to get hits from words in the title , {title: queryRegex}
+  console.log(`Found ${oneQuestionAnswers.length} question(s)`)
+  // res.json(questions)
 })
   
 // Add answer
-// app.post('/answer', authenticateUser)
+app.post('/question/:id/answers', authenticateUser)
 app.post('/question/:id/answers', async (req, res) => {
   try {
     const { text, userId, questionId } = req.body
-    const newAnswer = new Answer({ text, userId:req.user._id, questionId:req.question._id  })
+    const newAnswer = new Answer({ text, userId:req.user._id, questionId })
     const saved = await newAnswer.save()
     res.status(201).json({ text: saved.text, userId: saved.userId, questionId: saved.questionId })
   } catch (err) { 
