@@ -171,7 +171,7 @@ app.post('/question/:questionId/like', async (req, res) => {
 //   }
 // })
 
-app.get('/profile/:userId/questions', authenticateUser)
+// app.get('/profile/:userId/questions', authenticateUser)
 app.get('/profile/:userId/questions', async (req, res) => {
   const { userId } = req.params
   try {
@@ -192,6 +192,7 @@ app.get('/latest/:userId/questions', async (req, res) => {
     res.status(400).json({ message: 'Does not work at all!'})
   }
 })
+
 
 // Endpoint for specific question
 // app.get('questions/:questionId', authenticateUser)
@@ -232,16 +233,24 @@ app.get('/answers', async (req, res) => {
   res.json(answers)
 })
 
+//All the latest 
+
+app.get('/latest/:userId/answers', async (req, res) => {
+  const { userId } = req.params
+  try {
+    const userAnswers = await Answer.find({ userId: userId}).sort({createdAt: 'desc'}).limit(3)
+    res.json(userAnswers)
+  } catch (err) {
+    res.status(400).json({ message: 'Does not work at all!'})
+  }
+})
+
 // Get all answers for a specific question
-// 5ef07af3a44f4e12ac2e226b
 
 app.get('/question/:questionId/answers', async (req, res) => {
   const { questionId } = req.params
   try {
-    const oneQuestionAnswers = await Question.findById(questionId).populate({
-      path: 'Answer',
-      select: 'text'
-    })
+    const oneQuestionAnswers = await Answer.find(questionId).populate('question')
     res.json(oneQuestionAnswers)
   } catch (err) {
     res.status(400).json({ message: 'Does not work!'})
@@ -267,21 +276,12 @@ app.get('/question/:questionId/answers', async (req, res) => {
 
 app.post('/question/:id/answers', async (req, res) => {
   try {
-    const { text, userId, questionId } = req.params
-    const newAnswer = await Answer.findOneAndUpdate(
-      { _id: questionId },
-      {
-        $push: {
-          answer: {
-            text: req.body.text,
-            questionId: req.body.questionId,
-            userId: req.body.userId,
-          }
-        }
-      })
-    res.status(201).json(newAnswer)
-  } catch (err) {
-    res.status(400).json({ errors: err.errors })
+    const { text, userId, questionId } = req.body
+    const newAnswer = new Answer({ text, userId:req.user._id, questionId })
+    const saved = await newAnswer.save()
+    res.status(201).json({ text: saved.text, userId: saved.userId, questionId: saved.questionId })
+  } catch (err) { 
+    res.status(400).json({ message: 'Could not create answer', errors: err.errors })
   }
 })
 
