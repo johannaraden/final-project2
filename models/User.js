@@ -19,14 +19,15 @@ export const User = mongoose.model('User', {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
   },
-  answers: 
+  answers: [
     {
-      type: [Schema.Types.ObjectId],
+      type: Schema.Types.ObjectId,
       ref: 'Answer'
-  },
+  }
+],
   questions: [
     {
-      type: [Schema.Types.ObjectId],
+      type: Schema.Types.ObjectId,
       ref: 'Question'
   }
   ]

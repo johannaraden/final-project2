@@ -20,10 +20,12 @@ export const Question = mongoose.model('Question', {
       ref: 'User',
       required: true
     },
-    answer: {
-      type: [mongoose.Schema.Types.ObjectId],
+    answer: [
+      {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Answer'
-    },
+    }
+    ],
     createdAt: {
       type: Date,
       default: Date.now()

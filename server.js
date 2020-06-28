@@ -277,7 +277,7 @@ app.get('/question/:questionId/answers', async (req, res) => {
 app.post('/question/:id/answers', async (req, res) => {
   try {
     const { text, userId, questionId } = req.body
-    const newAnswer = new Answer({ text, userId:req.user._id, questionId })
+    const newAnswer = new Answer({ text, userId, questionId })
     const saved = await newAnswer.save()
     res.status(201).json({ text: saved.text, userId: saved.userId, questionId: saved.questionId })
   } catch (err) { 
