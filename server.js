@@ -155,22 +155,6 @@ app.post('/question/:questionId/like', async (req, res) => {
     }
 })
 
-//For all questions written by a specific user.
-// app.get('/profile/questions', authenticateUser)
-// app.get('/profile/:userId/questions', async (req, res) => {
-//   try {
-//     const question = await Question.find({userId: req.params.user._id})
-//     console.log(question) 
-//     if (question) {
-//       res.json(question)
-//     } else {
-//       res.status(404).json({error: ERR_NO_QUESTIONS})
-//   } 
-//   }catch (err) {
-//     res.status(400).json({error: ERR_NO_QUESTIONS})
-//   }
-// })
-
 // app.get('/profile/:userId/questions', authenticateUser)
 app.get('/profile/:userId/questions', async (req, res) => {
   const { userId } = req.params
@@ -225,7 +209,8 @@ app.get('/noanswer', async(req, res) => {
 
 
 
-// Answers endpoint 
+// Answers endpoints
+
 // app.get('/answers', authenticateUser)
 app.get('/answers', async (req, res) => {
   const answers = await Answer.find()
@@ -233,8 +218,7 @@ app.get('/answers', async (req, res) => {
   res.json(answers)
 })
 
-//All the latest 
-
+//All the latest answers
 app.get('/latest/:userId/answers', async (req, res) => {
   const { userId } = req.params
   try {
@@ -245,21 +229,33 @@ app.get('/latest/:userId/answers', async (req, res) => {
   }
 })
 
-// Get all answers for a specific question
 
+// All answers to a specific question
 app.get('/question/:questionId/answers', async (req, res) => {
   const { questionId } = req.params
   try {
-    const oneQuestionAnswers = await Answer.find(questionId).populate('question')
-    res.json(oneQuestionAnswers)
+    const qAnswers = await Answer.find({ questionId: questionId}).sort({createdAt: 'desc'})
+    res.json(qAnswers)
   } catch (err) {
-    res.status(400).json({ message: 'Does not work!'})
+    res.status(400).json({ message: 'Does not work at all!'})
   }
-//   // Also possible to get hits from words in the title , {title: queryRegex}
-  console.log(`Found ${oneQuestionAnswers} question(s)`)
-  console.log(questionId)
-  // res.json(questions)
 })
+// Get all answers for a specific question
+
+// app.get('/question/:questionId/answers', async (req, res) => {
+//   const { questionId } = req.params
+//   let oneQuestionAnswers
+//   try {
+//     oneQuestionAnswers = await Answer.find({ questionId: questionId})
+//     res.json(oneQuestionAnswers)
+//   } catch (err) {
+//     res.status(400).json({ message: 'Does not work!'})
+//   }
+// //   // Also possible to get hits from words in the title , {title: queryRegex}
+//   console.log(`Found ${oneQuestionAnswers} question(s)`)
+//   console.log(questionId)
+//   // res.json(questions)
+// })
   
 // Add answer
 // app.post('/question/:id/answers', authenticateUser)
@@ -274,12 +270,13 @@ app.get('/question/:questionId/answers', async (req, res) => {
 //   }
 // })
 
-app.post('/question/:id/answers', async (req, res) => {
+app.post('/question/:questionId/answers', async (req, res) => {
   try {
     const { text, userId, questionId } = req.body
     const newAnswer = new Answer({ text, userId, questionId })
     const saved = await newAnswer.save()
     res.status(201).json({ text: saved.text, userId: saved.userId, questionId: saved.questionId })
+    console.log('posted an answer(backend)')
   } catch (err) { 
     res.status(400).json({ message: 'Could not create answer', errors: err.errors })
   }
